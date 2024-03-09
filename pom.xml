@@ -48,7 +48,7 @@
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>htmx.org</artifactId>
-            <version>1.9.2</version><!-- 1.9.2 -->
+            <version>1.9.10</version>
         </dependency>
         <dependency>
             <groupId>com.j2html</groupId>
@@ -63,11 +63,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>com.tugalsan.api.log</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>com.tugalsan.api.thread</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

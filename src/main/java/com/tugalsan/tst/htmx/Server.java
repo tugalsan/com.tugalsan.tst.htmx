@@ -1,8 +1,8 @@
 package com.tugalsan.tst.htmx;
 
 import com.tugalsan.api.log.server.TS_Log;
-import com.tugalsan.api.thread.server.sync.TS_ThreadSyncTrigger;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import j2html.tags.specialized.LiTag;
 import j2html.tags.specialized.UlTag;
@@ -15,24 +15,48 @@ import static j2html.TagCreator.*;
 
 public class Server {
 
-    public static record Record(String id, String content, boolean completed) {
-
-        public static Record newItem(String content) {
-            return new Record(UUID.randomUUID().toString(), content, false);
-        }
-    }
     final private static TS_Log d = TS_Log.of(Server.class);
-    final public static TS_ThreadSyncTrigger killTrigger = TS_ThreadSyncTrigger.of();
-    public static Javalin server;
+
+    public static record Item(String id, String content, boolean completed) {
+
+        public static Item of(String content) {
+            return new Item(UUID.randomUUID().toString(), content, false);
+        }
+
+        public static Item dbFetch(LinkedHashMap<String, Item> db, String id) {
+            return db.get(id);
+        }
+
+        public static void dbAdd(LinkedHashMap<String, Item> db, String content) {
+            dbAdd(db, Item.of(content));
+        }
+
+        @Deprecated
+        public static void dbAdd(LinkedHashMap<String, Item> db, Item item) {
+            db.put(item.id, item);
+        }
+
+        public static void renderDb(Context ctx, LinkedHashMap<String, Item> db) {
+            ctx.html(toHtmx(db).render());
+        }
+
+        public static void renderItem(Context ctx, Item item, boolean editing) {
+            ctx.html(toHtmx(item, editing).render());
+        }
+
+    }
 
     public static void main(String... s) {
+        //PREREQUESTS
+        var POM_HTMX_VERSION = "1.9.10";
+        var PAGE_TITLE = Server.class.getName();
+
         //DB INIT
-        var recordFirst = Record.newItem("buyMilk");
-        var recordMap = new LinkedHashMap<String, Record>();
-        recordMap.put(recordFirst.id, recordFirst);
+        var db = new LinkedHashMap<String, Item>();
+        Item.dbAdd(db, "BuyMilk");
 
         //SERVER INIT
-        server = Javalin.create(config -> {
+        var server = Javalin.create(config -> {
             config.staticFiles.enableWebjars();
             config.staticFiles.add("public");
         });
@@ -41,13 +65,13 @@ public class Server {
         server.addHttpHandler(HandlerType.GET, "/", ctx -> {
             var content = html(
                     head(
-                            script().withSrc("/webjars/htmx.org/1.9.2/dist/htmx.min.js"),
+                            script().withSrc("/webjars/htmx.org/%s/dist/htmx.min.js".formatted(POM_HTMX_VERSION)),
                             link().withRel("stylesheet").withHref("/style/pico.min.css")
                     ),
                     body(
                             div(
-                                    h1("Page Title"),
-                                    toHtmx(recordMap)
+                                    h1(PAGE_TITLE),
+                                    toHtmx(db)
                             ).withClass("container")
                     )
             );
@@ -58,53 +82,43 @@ public class Server {
 
         //SERVER Handler /todos (new)
         server.addHttpHandler(HandlerType.POST, "/todos", ctx -> {
-            var newContent = ctx.formParam("content");
-            var newTodo = Record.newItem(newContent);
-            recordMap.put(newTodo.id, newTodo);
-            ctx.html(toHtmx(recordMap).render());
+            Item.dbAdd(db, ctx.formParam("content"));
+            Item.renderDb(ctx, db);
         });
 
         //SERVER Handler /todos/{id} (update)
         server.addHttpHandler(HandlerType.POST, "/todos/{id}", ctx -> {
             var id = ctx.pathParam("id");
-            var newContent = ctx.formParam("value");
-            var updatedTodo = recordMap.computeIfPresent(id, (_id, oldTodo)
-                    -> new Record(id, newContent, oldTodo.completed)
+            var itemUpdated = db.computeIfPresent(id, (_id, oldTodo)
+                    -> new Item(id, ctx.formParam("value"), oldTodo.completed)
             );
-            ctx.html(toHtmx(updatedTodo, false).render());
+            Item.renderItem(ctx, itemUpdated, false);
         });
 
         //SERVER Handler /todos/{id}/toggle
         server.addHttpHandler(HandlerType.POST, "/todos/{id}/toggle", ctx -> {
             var id = ctx.pathParam("id");
-
-            var updatedTodo = recordMap.computeIfPresent(id, (_id, oldTodo) -> new Record(id, oldTodo.content, !oldTodo.completed));
-
-            ctx.html(toHtmx(updatedTodo, false).render());
+            var itemUpdated = db.computeIfPresent(id, (_id, oldTodo)
+                    -> new Item(id, oldTodo.content, !oldTodo.completed)
+            );
+            Item.renderItem(ctx, itemUpdated, false);
         });
 
         //SERVER Handler /todos/{id}/edit
         server.addHttpHandler(HandlerType.POST, "/todos/{id}/edit", ctx -> {
-            var id = ctx.pathParam("id");
-
-            var todo = recordMap.get(id);
-
-            ctx.html(toHtmx(todo, true).render());
+            Item.renderItem(ctx, Item.dbFetch(db, ctx.pathParam("id")), true);
         });
 
         //SERVER Log
-        server.after((ctx) -> {
-            d.cr("main", ctx.req().getMethod(), ctx.path(), ctx.status());
-        });
-
+        server.after((ctx) -> d.cr("main", ctx.req().getMethod(), ctx.path(), ctx.status()));
         server.start();//server.stop();
     }
 
-    private static UlTag toHtmx(Map<String, Record> recordMap) {
+    private static UlTag toHtmx(Map<String, Item> db) {
         return ul()
                 .withId("todo-list")
                 .with(
-                        recordMap.values().stream()
+                        db.values().stream()
                                 .map(todo -> toHtmx(todo, false))
                 )
                 .with(
@@ -127,7 +141,7 @@ public class Server {
                 );
     }
 
-    private static LiTag toHtmx(Record todo, boolean editing) {
+    private static LiTag toHtmx(Item todo, boolean editing) {
         var text = div(todo.content)
                 .attr("hx-post", "/todos/" + todo.id + "/edit")
                 .withStyle("flex-grow: 1; cursor: text;")

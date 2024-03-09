@@ -3,6 +3,5 @@ module com.tugalsan.spi.database {
     requires io.javalin;
     
     requires com.tugalsan.api.log;
-    requires com.tugalsan.api.thread;
 
 }
