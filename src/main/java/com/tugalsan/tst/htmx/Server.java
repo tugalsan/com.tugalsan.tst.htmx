@@ -1,45 +1,44 @@
 package com.tugalsan.tst.htmx;
 
+import com.tugalsan.api.log.server.TS_Log;
+import com.tugalsan.api.thread.server.sync.TS_ThreadSyncTrigger;
 import io.javalin.Javalin;
 import io.javalin.http.HandlerType;
 import j2html.tags.specialized.LiTag;
 import j2html.tags.specialized.UlTag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static j2html.TagCreator.*;
 
 public class Server {
 
-    private static final Logger log = LoggerFactory.getLogger(Server.class);
+    public static record Record(String id, String content, boolean completed) {
 
-    /**
-     * Represents a single todo item.
-     */
-    public record Todo(String id, String content, boolean completed) {
-
+        public static Record newItem(String content) {
+            return new Record(UUID.randomUUID().toString(), content, false);
+        }
     }
+    final private static TS_Log d = TS_Log.of(Server.class);
+    final public static TS_ThreadSyncTrigger killTrigger = TS_ThreadSyncTrigger.of();
+    public static Javalin server;
 
-    private final Javalin javalin;
+    public static void main(String... s) {
+        //DB INIT
+        var recordFirst = Record.newItem("buyMilk");
+        var recordMap = new LinkedHashMap<String, Record>();
+        recordMap.put(recordFirst.id, recordFirst);
 
-    public Server() {
-        // In-memory 'todo' store.
-        var exampleTodo = new Todo(UUID.randomUUID().toString(), "Buy milk", false);
-        var idToTodo = new LinkedHashMap<String, Todo>();
-        idToTodo.put(exampleTodo.id, exampleTodo);
-
-        // Set up Javalin server.
-        javalin = Javalin.create(config -> {
+        //SERVER INIT
+        server = Javalin.create(config -> {
             config.staticFiles.enableWebjars();
             config.staticFiles.add("public");
         });
 
-        javalin.addHttpHandler(HandlerType.GET, "/", ctx -> {
+        //SERVER Handler / 
+        server.addHttpHandler(HandlerType.GET, "/", ctx -> {
             var content = html(
                     head(
                             script().withSrc("/webjars/htmx.org/1.9.2/dist/htmx.min.js"),
@@ -47,8 +46,8 @@ public class Server {
                     ),
                     body(
                             div(
-                                    h1("Todo App"),
-                                    createTodoList(idToTodo)
+                                    h1("Page Title"),
+                                    toHtmx(recordMap)
                             ).withClass("container")
                     )
             );
@@ -57,54 +56,56 @@ public class Server {
             ctx.html(rendered);
         });
 
-        // Create new todo item.
-        javalin.addHttpHandler(HandlerType.POST, "/todos", ctx -> {
+        //SERVER Handler /todos (new)
+        server.addHttpHandler(HandlerType.POST, "/todos", ctx -> {
             var newContent = ctx.formParam("content");
-            var newTodo = new Todo(UUID.randomUUID().toString(), newContent, false);
-            idToTodo.put(newTodo.id, newTodo);
-            ctx.html(createTodoList(idToTodo).render());
+            var newTodo = new Record(UUID.randomUUID().toString(), newContent, false);
+            recordMap.put(newTodo.id, newTodo);
+            ctx.html(toHtmx(recordMap).render());
         });
 
-        // Update the content of a todo item.
-        javalin.addHttpHandler(HandlerType.POST, "/todos/{id}", ctx -> {
+        //SERVER Handler /todos/{id} (update)
+        server.addHttpHandler(HandlerType.POST, "/todos/{id}", ctx -> {
             var id = ctx.pathParam("id");
             var newContent = ctx.formParam("value");
 
-            var updatedTodo = idToTodo.computeIfPresent(id, (_id, oldTodo) -> new Todo(id, newContent, oldTodo.completed));
+            var updatedTodo = recordMap.computeIfPresent(id, (_id, oldTodo) -> new Record(id, newContent, oldTodo.completed));
 
-            ctx.html(createTodoItem(updatedTodo, false).render());
+            ctx.html(toHtmx(updatedTodo, false).render());
         });
 
-        // Toggle the completed status of a specified todo item.
-        javalin.addHttpHandler(HandlerType.POST, "/todos/{id}/toggle", ctx -> {
+        //SERVER Handler /todos/{id}/toggle
+        server.addHttpHandler(HandlerType.POST, "/todos/{id}/toggle", ctx -> {
             var id = ctx.pathParam("id");
 
-            var updatedTodo = idToTodo.computeIfPresent(id, (_id, oldTodo) -> new Todo(id, oldTodo.content, !oldTodo.completed));
+            var updatedTodo = recordMap.computeIfPresent(id, (_id, oldTodo) -> new Record(id, oldTodo.content, !oldTodo.completed));
 
-            ctx.html(createTodoItem(updatedTodo, false).render());
+            ctx.html(toHtmx(updatedTodo, false).render());
         });
 
-        // Returns an 'edit' view of a todo item.
-        javalin.addHttpHandler(HandlerType.POST, "/todos/{id}/edit", ctx -> {
+        //SERVER Handler /todos/{id}/edit
+        server.addHttpHandler(HandlerType.POST, "/todos/{id}/edit", ctx -> {
             var id = ctx.pathParam("id");
 
-            var todo = idToTodo.get(id);
+            var todo = recordMap.get(id);
 
-            ctx.html(createTodoItem(todo, true).render());
+            ctx.html(toHtmx(todo, true).render());
         });
 
-        // Basic logging of requests/responses.
-        javalin.after((ctx) -> {
-            log.info("{} {} {}", ctx.req().getMethod(), ctx.path(), ctx.status());
+        //SERVER Log
+        server.after((ctx) -> {
+            d.cr("main", ctx.req().getMethod(), ctx.path(), ctx.status());
         });
+        
+        server.start();//server.stop();
     }
 
-    private UlTag createTodoList(Map<String, Todo> idToTodo) {
+    private static UlTag toHtmx(Map<String, Record> recordMap) {
         return ul()
                 .withId("todo-list")
                 .with(
-                        idToTodo.values().stream()
-                                .map(todo -> createTodoItem(todo, false))
+                        recordMap.values().stream()
+                                .map(todo -> toHtmx(todo, false))
                 )
                 .with(
                         li(
@@ -126,7 +127,7 @@ public class Server {
                 );
     }
 
-    public static LiTag createTodoItem(Todo todo, boolean editing) {
+    private static LiTag toHtmx(Record todo, boolean editing) {
         var text = div(todo.content)
                 .attr("hx-post", "/todos/" + todo.id + "/edit")
                 .withStyle("flex-grow: 1; cursor: text;")
@@ -155,15 +156,5 @@ public class Server {
                 .attr("hx-swap", "outerHTML")
                 .withId("todo-" + todo.id)
                 .withStyle("display: flex; align-items: center;");
-    }
-
-    public void start() {
-        javalin.start();
-    }
-
-    // Run the thing!
-    public static void main(String[] args) {
-        var server = new Server();
-        server.start();
     }
 }
