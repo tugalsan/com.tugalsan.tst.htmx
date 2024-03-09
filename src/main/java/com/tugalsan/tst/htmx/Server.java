@@ -59,7 +59,7 @@ public class Server {
         //SERVER Handler /todos (new)
         server.addHttpHandler(HandlerType.POST, "/todos", ctx -> {
             var newContent = ctx.formParam("content");
-            var newTodo = new Record(UUID.randomUUID().toString(), newContent, false);
+            var newTodo = Record.newItem(newContent);
             recordMap.put(newTodo.id, newTodo);
             ctx.html(toHtmx(recordMap).render());
         });
@@ -68,9 +68,9 @@ public class Server {
         server.addHttpHandler(HandlerType.POST, "/todos/{id}", ctx -> {
             var id = ctx.pathParam("id");
             var newContent = ctx.formParam("value");
-
-            var updatedTodo = recordMap.computeIfPresent(id, (_id, oldTodo) -> new Record(id, newContent, oldTodo.completed));
-
+            var updatedTodo = recordMap.computeIfPresent(id, (_id, oldTodo)
+                    -> new Record(id, newContent, oldTodo.completed)
+            );
             ctx.html(toHtmx(updatedTodo, false).render());
         });
 
@@ -96,7 +96,7 @@ public class Server {
         server.after((ctx) -> {
             d.cr("main", ctx.req().getMethod(), ctx.path(), ctx.status());
         });
-        
+
         server.start();//server.stop();
     }
 
