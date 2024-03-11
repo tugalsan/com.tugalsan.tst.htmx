@@ -23,9 +23,13 @@ import static j2html.TagCreator.*;
       <div class="container">
          <h1>com.tugalsan.tst.htmx.Server</h1>
          <ul id="todo-list">
-            <li hx-target="#todo-7e26431e-fabb-490f-8bb2-56c348b5f3b4" hx-swap="outerHTML" id="todo-7e26431e-fabb-490f-8bb2-56c348b5f3b4" style="display: flex; align-items: center;">
-               <input style="flex-basis: 0; min-width: 20px" type="checkbox" hx-post="/todos/7e26431e-fabb-490f-8bb2-56c348b5f3b4/toggle">
-               <div hx-post="/todos/7e26431e-fabb-490f-8bb2-56c348b5f3b4/edit" style="flex-grow: 1; cursor: text;">BuyMilk</div>
+            <li hx-target="#todo-3229dd83-8948-4da5-8a5d-10c6bb8f58c1" hx-swap="outerHTML" id="todo-3229dd83-8948-4da5-8a5d-10c6bb8f58c1" style="display: flex; align-items: center;">
+               <input style="flex-basis: 0; min-width: 20px" type="checkbox" hx-post="/todos/3229dd83-8948-4da5-8a5d-10c6bb8f58c1/toggle">
+               <div hx-post="/todos/3229dd83-8948-4da5-8a5d-10c6bb8f58c1/edit" style="flex-grow: 1; cursor: text;">BuyMilk1</div>
+            </li>
+            <li hx-target="#todo-556e864a-66c8-42c9-ac00-47cd643fe3be" hx-swap="outerHTML" id="todo-556e864a-66c8-42c9-ac00-47cd643fe3be" style="display: flex; align-items: center;">
+               <input style="flex-basis: 0; min-width: 20px" type="checkbox" hx-post="/todos/556e864a-66c8-42c9-ac00-47cd643fe3be/toggle">
+               <div hx-post="/todos/556e864a-66c8-42c9-ac00-47cd643fe3be/edit" style="flex-grow: 1; cursor: text;">BuyMilk2</div>
             </li>
             <li style="list-style-type: none">
                <form style="display: flex;" hx-swap="outerHTML" hx-target="#todo-list" hx-post="/todos"><input required type="text" name="content"><input value="Add" type="submit"></form>
