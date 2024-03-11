@@ -12,7 +12,29 @@ import java.util.Map;
 import java.util.UUID;
 
 import static j2html.TagCreator.*;
-
+/*
+<!DOCTYPE html>
+<html>
+   <head>
+      <script src="/webjars/htmx.org/1.9.10/dist/htmx.min.js"></script>
+      <link rel="stylesheet" href="/style/pico.min.css">
+   </head>
+   <body>
+      <div class="container">
+         <h1>com.tugalsan.tst.htmx.Server</h1>
+         <ul id="todo-list">
+            <li hx-target="#todo-7e26431e-fabb-490f-8bb2-56c348b5f3b4" hx-swap="outerHTML" id="todo-7e26431e-fabb-490f-8bb2-56c348b5f3b4" style="display: flex; align-items: center;">
+               <input style="flex-basis: 0; min-width: 20px" type="checkbox" hx-post="/todos/7e26431e-fabb-490f-8bb2-56c348b5f3b4/toggle">
+               <div hx-post="/todos/7e26431e-fabb-490f-8bb2-56c348b5f3b4/edit" style="flex-grow: 1; cursor: text;">BuyMilk</div>
+            </li>
+            <li style="list-style-type: none">
+               <form style="display: flex;" hx-swap="outerHTML" hx-target="#todo-list" hx-post="/todos"><input required type="text" name="content"><input value="Add" type="submit"></form>
+            </li>
+         </ul>
+      </div>
+   </body>
+</html>
+*/
 public class Server {
 
     final private static TS_Log d = TS_Log.of(Server.class);
