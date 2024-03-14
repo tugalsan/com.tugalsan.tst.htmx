@@ -1,4 +1,4 @@
-module com.tugalsan.spi.database {
+module com.tugalsan.tst.htmx {
     requires com.j2html;
     requires io.javalin;
     
