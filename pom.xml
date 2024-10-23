@@ -46,6 +46,11 @@
             <version>6.3.0</version>
         </dependency>
         <dependency>
+            <groupId>io.javalin.community.ssl</groupId>
+            <artifactId>ssl-plugin</artifactId>
+            <version>6.3.0</version>
+        </dependency>
+        <!--<dependency>
             <groupId>org.eclipse.jetty.http2</groupId>
             <artifactId>http2-server</artifactId>
             <version>11.0.24</version>
@@ -65,7 +70,7 @@
             <artifactId>alpn-boot</artifactId>
             <version>8.1.13.v20181017</version>
             <scope>test</scope>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>htmx.org</artifactId>
